@@ -14,11 +14,25 @@ export class CardsController {
   async findAllFiltered(
     @Query('tipoParticipante') tipoParticipante: string,
     @Query('idUser') idUser: string,
+    @Query('empresa') empresa: string,
     @Query('listaAfilhados') listaAfilhados?: { name: string, id: string }[]
   ): Promise<any[]> {
 
-    return this.cardsService.findAllFiltered(tipoParticipante, idUser, listaAfilhados);
+    return this.cardsService.findAllFiltered(tipoParticipante, idUser, empresa, listaAfilhados);
   }
+
+  // @Get('filtered')
+  // async findAllFiltered(
+  //   @Query('tipoParticipante') tipoParticipante: string,
+  //   @Query('idUser') idUser: string,
+  //   @Query('listaAfilhados') listaAfilhados?: { name: string, id: string }[]
+  // ): Promise<any[]> {
+
+  //   return this.cardsService.findAllFiltered(tipoParticipante, idUser, listaAfilhados);
+  // }
+
+
+
 
   @Delete(':id')
   async deleteCard(@Param('id') cardId: number): Promise<void> {

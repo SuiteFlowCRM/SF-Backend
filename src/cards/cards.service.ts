@@ -161,37 +161,82 @@ export class CardsService {
     }
   }
 
-  async findAllFiltered(tipoParticipante: string, idUser: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
+  async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
     const client = new Client(this.dbConfig);
+
+    console.log(tipoParticipante)
+    console.log(idUser)
+    console.log(empresa)
+    console.log(listaAfilhados)
     try {
       await client.connect();
       let query = '';
-
+  
       if (tipoParticipante === 'Administrador') {
-        query = 'SELECT * FROM cards';
+        console.log('Todos os usuarios')
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C"
+        `;
       } else {
         if (listaAfilhados && listaAfilhados.length > 0) {
+          console.log('criado por afilhados')
           const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
           query = `
-          SELECT * FROM cards 
-          WHERE id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}])
-        `;
+            SELECT * FROM cards 
+            WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
+          `;
         } else {
+          console.log('apenas creado pelo usuario')
           query = `
-          SELECT * FROM cards 
-          WHERE id_create_by = '${idUser}' COLLATE "C"
-        `;
+            SELECT * FROM cards 
+            WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
+          `;
         }
       }
-
+  
       const result = await client.query(query);
       return result.rows;
     } catch (error) {
-      throw new Error('Failed to fetch cards');
+      throw new Error('Falha ao buscar os cards no banco');
     } finally {
       await client.end();
     }
   }
+  
+
+
+  // async findAllFiltered(tipoParticipante: string, idUser: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
+  //   const client = new Client(this.dbConfig);
+  //   try {
+  //     await client.connect();
+  //     let query = '';
+
+  //     if (tipoParticipante === 'Administrador') {
+  //       query = 'SELECT * FROM cards';
+  //     } else {
+  //       if (listaAfilhados && listaAfilhados.length > 0) {
+  //         const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
+  //         query = `
+  //         SELECT * FROM cards 
+  //         WHERE id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}])
+  //       `;
+  //       } else {
+  //         query = `
+  //         SELECT * FROM cards 
+  //         WHERE id_create_by = '${idUser}' COLLATE "C"
+  //       `;
+  //       }
+  //     }
+
+  //     const result = await client.query(query);
+  //     return result.rows;
+  //   } catch (error) {
+  //     throw new Error('Failed to fetch cards');
+  //   } finally {
+  //     await client.end();
+  //   }
+  // }
 
   async createCard(cardData: any): Promise<any> {
     const { document_card, name, name_obra, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico } = cardData;
