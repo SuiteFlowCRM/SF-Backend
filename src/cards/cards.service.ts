@@ -161,6 +161,7 @@ export class CardsService {
     }
   }
 
+
   async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
     const client = new Client(this.dbConfig);
 
@@ -171,30 +172,40 @@ export class CardsService {
     try {
       await client.connect();
       let query = '';
-  
+
       if (tipoParticipante === 'Administrador') {
         console.log('Todos os usuarios')
         query = `
           SELECT * FROM cards 
           WHERE empresa = '${empresa}' COLLATE "C"
         `;
-      } else {
-        if (listaAfilhados && listaAfilhados.length > 0) {
-          console.log('criado por afilhados')
-          const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
-          query = `
+      }
+
+      if (listaAfilhados && listaAfilhados.length > 0 && tipoParticipante === 'Parceiro') {
+        console.log('criado por afilhados')
+        const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
+        query = `
             SELECT * FROM cards 
             WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
           `;
-        } else {
-          console.log('apenas creado pelo usuario')
-          query = `
+      }
+
+      if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'Parceiro') {
+        console.log('apenas criado pelo usuario')
+        query = `
             SELECT * FROM cards 
             WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
           `;
-        }
       }
-  
+
+      if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'free') {
+        console.log('apenas criado pelo usuario')
+        query = `
+            SELECT * FROM cards 
+            WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
+          `;
+      }
+
       const result = await client.query(query);
       return result.rows;
     } catch (error) {
@@ -203,7 +214,51 @@ export class CardsService {
       await client.end();
     }
   }
-  
+
+
+  // async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
+  //   const client = new Client(this.dbConfig);
+
+  //   console.log(tipoParticipante)
+  //   console.log(idUser)
+  //   console.log(empresa)
+  //   console.log(listaAfilhados)
+  //   try {
+  //     await client.connect();
+  //     let query = '';
+
+  //     if (tipoParticipante === 'Administrador') {
+  //       console.log('Todos os usuarios')
+  //       query = `
+  //         SELECT * FROM cards 
+  //         WHERE empresa = '${empresa}' COLLATE "C"
+  //       `;
+  //     } else {
+  //       if (listaAfilhados && listaAfilhados.length > 0) {
+  //         console.log('criado por afilhados')
+  //         const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
+  //         query = `
+  //           SELECT * FROM cards 
+  //           WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
+  //         `;
+  //       } else {
+  //         console.log('apenas creado pelo usuario')
+  //         query = `
+  //           SELECT * FROM cards 
+  //           WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
+  //         `;
+  //       }
+  //     }
+
+  //     const result = await client.query(query);
+  //     return result.rows;
+  //   } catch (error) {
+  //     throw new Error('Falha ao buscar os cards no banco');
+  //   } finally {
+  //     await client.end();
+  //   }
+  // }
+
 
 
   // async findAllFiltered(tipoParticipante: string, idUser: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
@@ -238,13 +293,32 @@ export class CardsService {
   //   }
   // }
 
-  async createCard(cardData: any): Promise<any> {
-    const { document_card, name, name_obra, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico } = cardData;
 
+
+
+  async  createCard(cardData: any): Promise<any> {
+    const { document_card, name, name_obra, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico, tipo_participante } = cardData;
+  
     const client = new Client(this.dbConfig);
+  
     try {
       await client.connect();
-
+  
+      // Verificar se a empresa é 'free' e o usuário já criou mais de 20 cards
+      if (tipo_participante === 'free') {
+        const countQuery = `
+          SELECT COUNT(*) AS card_count FROM cards
+          WHERE id_create_by = $1;
+        `;
+  
+        const countResult = await client.query(countQuery, [id_create_by]);
+        const cardCount = countResult.rows[0].card_count;
+  
+        if (cardCount >= 5) {
+          throw new Error('Limite de 5 cards atingido na versão gratuita.');
+        }
+      }
+  
       const query = `
         INSERT INTO cards (
           document_card,
@@ -275,7 +349,7 @@ export class CardsService {
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
         ) RETURNING *;
       `;
-
+  
       const values = [
         document_card,
         name,
@@ -302,15 +376,95 @@ export class CardsService {
         lista_tarefas,
         lista_historico
       ];
-
+  
       const result = await client.query(query, values);
-
+  
       return result.rows[0];
     } catch (error) {
-      console.error('Informações do erro ao criar  card:', error);
-      throw new Error('Failedto create card');
+      //console.error('Informações do erro ao criar  card:', error);
+      //throw new Error('Failed to create card');
     } finally {
       await client.end();
     }
   }
+
+  // async createCard(cardData: any): Promise<any> {
+  //   const { document_card, name, name_obra, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico } = cardData;
+
+  //   const client = new Client(this.dbConfig);
+  //   try {
+  //     await client.connect();
+
+  //     const query = `
+  //       INSERT INTO cards (
+  //         document_card,
+  //         name,
+  //         name_obra,
+  //         valor,
+  //         email,
+  //         fone,
+  //         city,
+  //         estado,
+  //         previsao,
+  //         meio_contato,
+  //         create_by,
+  //         id_create_by,
+  //         name_user,
+  //         id_column,
+  //         date,
+  //         nivel,
+  //         etiqueta,
+  //         empresa,
+  //         motivo_perca,
+  //         modification_date,
+  //         produto,
+  //         status,
+  //         lista_tarefas,
+  //         lista_historico
+  //       ) VALUES (
+  //         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
+  //       ) RETURNING *;
+  //     `;
+
+  //     const values = [
+  //       document_card,
+  //       name,
+  //       name_obra,
+  //       valor,
+  //       email,
+  //       fone,
+  //       city,
+  //       estado,
+  //       previsao,
+  //       meio_contato,
+  //       create_by,
+  //       id_create_by,
+  //       name_user,
+  //       id_column,
+  //       date,
+  //       nivel,
+  //       etiqueta,
+  //       empresa,
+  //       motivo_perca,
+  //       modification_date,
+  //       produto,
+  //       status,
+  //       lista_tarefas,
+  //       lista_historico
+  //     ];
+
+  //     const result = await client.query(query, values);
+
+  //     return result.rows[0];
+  //   } catch (error) {
+  //     console.error('Informações do erro ao criar  card:', error);
+  //     throw new Error('Failedto create card');
+  //   } finally {
+  //     await client.end();
+  //   }
+  // }
+
+
+
+
 }
