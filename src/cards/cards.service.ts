@@ -161,51 +161,47 @@ export class CardsService {
     }
   }
 
-
   async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
     const client = new Client(this.dbConfig);
-
+  
     console.log(tipoParticipante)
     console.log(idUser)
     console.log(empresa)
     console.log(listaAfilhados)
+    
     try {
       await client.connect();
       let query = '';
-
+  
       if (tipoParticipante === 'Administrador') {
-        console.log('Todos os usuarios')
+        console.log('Todos os usuários')
         query = `
           SELECT * FROM cards 
           WHERE empresa = '${empresa}' COLLATE "C"
         `;
       }
-
+  
       if (listaAfilhados && listaAfilhados.length > 0 && tipoParticipante === 'Parceiro') {
         console.log('criado por afilhados')
-        const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
-        query = `
-            SELECT * FROM cards 
-            WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
-          `;
-      }
 
-      if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'Parceiro') {
-        console.log('apenas criado pelo usuario')
-        query = `
-            SELECT * FROM cards 
-            WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
-          `;
-      }
+        //const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
+        const afilhadosIds = listaAfilhados.map(afilhado => Number(afilhado.id));
 
-      if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'free') {
-        console.log('apenas criado pelo usuario')
-        query = `
-            SELECT * FROM cards 
-            WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
-          `;
-      }
 
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
+        `;
+      }
+  
+      if ((!listaAfilhados || listaAfilhados.length <= 0) && (tipoParticipante === 'Parceiro' || tipoParticipante === 'free')) {
+        console.log('apenas criado pelo usuário')
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
+        `;
+      }
+  
       const result = await client.query(query);
       return result.rows;
     } catch (error) {
@@ -214,6 +210,61 @@ export class CardsService {
       await client.end();
     }
   }
+  
+
+  
+  // async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
+  //   const client = new Client(this.dbConfig);
+
+  //   console.log(tipoParticipante)
+  //   console.log(idUser)
+  //   console.log(empresa)
+  //   console.log(listaAfilhados)
+  //   try {
+  //     await client.connect();
+  //     let query = '';
+
+  //     if (tipoParticipante === 'Administrador') {
+  //       console.log('Todos os usuarios')
+  //       query = `
+  //         SELECT * FROM cards 
+  //         WHERE empresa = '${empresa}' COLLATE "C"
+  //       `;
+  //     }
+
+  //     if (listaAfilhados && listaAfilhados.length > 0 && tipoParticipante === 'Parceiro') {
+  //       console.log('criado por afilhados')
+  //       const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
+  //       query = `
+  //           SELECT * FROM cards 
+  //           WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
+  //         `;
+  //     }
+
+  //     if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'Parceiro') {
+  //       console.log('apenas criado pelo usuario')
+  //       query = `
+  //           SELECT * FROM cards 
+  //           WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
+  //         `;
+  //     }
+
+  //     if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'free') {
+  //       console.log('apenas criado pelo usuario')
+  //       query = `
+  //           SELECT * FROM cards 
+  //           WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
+  //         `;
+  //     }
+
+  //     const result = await client.query(query);
+  //     return result.rows;
+  //   } catch (error) {
+  //     throw new Error('Falha ao buscar os cards no banco');
+  //   } finally {
+  //     await client.end();
+  //   }
+  // }
 
 
   // async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
