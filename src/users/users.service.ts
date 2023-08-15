@@ -130,7 +130,8 @@ export class UserService {
       lista_afilhados,
       entidade_preference,
       avatar,
-      meta
+      meta,
+      meta_grupo
     } = updatedUserData;
 
     const client = new Client(this.dbConfig);
@@ -152,9 +153,10 @@ export class UserService {
           lista_afilhados = $10,
           entidade_preference = $11,
           avatar = $12,
-          meta = $13
+          meta = $13,
+          meta_grupo = $14
         WHERE
-          id = $14
+          id = $15
         RETURNING *;
       `;
 
@@ -172,6 +174,7 @@ export class UserService {
         entidade_preference,
         avatar,
         meta,
+        meta_grupo,
         userId
       ];
 
