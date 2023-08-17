@@ -7,7 +7,6 @@ export class UserService {
 
   private dbConfig = databaseConfig;
 
-
     async  createUser(userData: any): Promise<any> {
     const { login, name, email, adress, city, estado, cep, fone, empresa, tipo_participante, lista_afilhados, entidade_preference, meta } = userData;
   
@@ -15,7 +14,6 @@ export class UserService {
   
     try {
       await client.connect();
-  
   
       const query = `
         INSERT INTO users (
@@ -68,8 +66,6 @@ export class UserService {
   async findAllFilteredUsers( login: string ): Promise<any[]> {
     const client = new Client(this.dbConfig);
 
-    console.log(login)
-
     try {
       await client.connect();
       let query = '';
@@ -93,8 +89,6 @@ export class UserService {
 
   async findAllFiltered( empresa: string ): Promise<any[]> {
     const client = new Client(this.dbConfig);
-
-    console.log(empresa)
 
     try {
       await client.connect();
@@ -192,26 +186,5 @@ export class UserService {
       await client.end();
     }
   }
-
-
-  // async deleteProduct(productId: number): Promise<void> {
-  //   const client = new Client(this.dbConfig);
-  //   try {
-  //     await client.connect();
-
-  //     const query = `
-  //       DELETE FROM produtos
-  //       WHERE id = $1;
-  //     `;
-
-  //     const values = [productId];
-
-  //     await client.query(query, values);
-  //   } catch (error) {
-  //     throw new Error('Falha ao deletar produto do banco');
-  //   } finally {
-  //     await client.end();
-  //   }
-  // }
 
 }

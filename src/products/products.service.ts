@@ -7,7 +7,6 @@ export class ProductsService {
 
   private dbConfig = databaseConfig;
 
-
     async  createProduct(newProduct: any): Promise<any> {
     const { empresa, name } = newProduct;
   
@@ -43,11 +42,8 @@ export class ProductsService {
   }
 
 
-
   async findAllFiltered( empresa: string ): Promise<any[]> {
     const client = new Client(this.dbConfig);
-
-    console.log(empresa)
 
     try {
       await client.connect();
@@ -58,7 +54,6 @@ export class ProductsService {
         WHERE empresa = '${empresa}' COLLATE "C"
       `;
 
-
       const result = await client.query(query);
       return result.rows;
     } catch (error) {
@@ -67,7 +62,6 @@ export class ProductsService {
       await client.end();
     }
   }
-
 
   async updateProduct(productId: number, updatedProductData: any): Promise<any> {
     const {
@@ -106,7 +100,6 @@ export class ProductsService {
       await client.end();
     }
   }
-
 
   async deleteProduct(productId: number): Promise<void> {
     const client = new Client(this.dbConfig);

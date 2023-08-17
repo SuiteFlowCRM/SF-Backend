@@ -163,11 +163,6 @@ export class CardsService {
 
   async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
     const client = new Client(this.dbConfig);
-  
-    console.log(tipoParticipante)
-    console.log(idUser)
-    console.log(empresa)
-    console.log(listaAfilhados)
     
     try {
       await client.connect();
@@ -186,7 +181,6 @@ export class CardsService {
 
         //const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
         const afilhadosIds = listaAfilhados.map(afilhado => Number(afilhado.id));
-
 
         query = `
           SELECT * FROM cards 
