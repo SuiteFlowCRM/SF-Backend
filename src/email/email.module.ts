@@ -11,7 +11,7 @@ export class EmailModule {
     // Agendar a tarefa para executar a cada minuto
     cron.schedule('* * * * *', () => {
       this.emailService.sendEmailsForDueTasks();
-      console.log('Scheduled email task executed.');
+      //console.log('Scheduled email task executed.');
     });
   }
 }

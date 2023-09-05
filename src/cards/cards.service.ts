@@ -7,6 +7,35 @@ export class CardsService {
 
   private dbConfig = databaseConfig;
 
+
+  // Método para buscar os cards vendidos no último minuto
+  async findSoldLastMinute(): Promise<any[]> {
+    const client = new Client(this.dbConfig);
+
+    try {
+      await client.connect();
+
+      // Calcular o timestamp atual menos 60 segundos (1 minuto)
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+
+      const query = `
+          SELECT *
+          FROM cards
+          WHERE status = 'Vendido' AND modification_date >= $1;
+        `;
+
+      const values = [oneMinuteAgo];
+
+      const result = await client.query(query, values);
+      return result.rows;
+    } catch (error) {
+      throw new Error('Failed to fetch sold cards from the last minute');
+    } finally {
+      await client.end();
+    }
+  }
+
+
   async deleteCard(cardId: number): Promise<void> {
     const client = new Client(this.dbConfig);
     try {
@@ -32,6 +61,7 @@ export class CardsService {
       id_column,
       nivel,
       status,
+      lista_historico
     } = updatedCardData;
 
     const client = new Client(this.dbConfig);
@@ -43,9 +73,10 @@ export class CardsService {
         SET
           id_column = $1,
           nivel = $2,
-          status = $3
+          status = $3,
+          lista_historico = $4
         WHERE
-          id = $4
+          id = $5
         RETURNING *;
       `;
 
@@ -53,6 +84,7 @@ export class CardsService {
         id_column,
         nivel,
         status,
+        lista_historico,
         cardId,
       ];
 
@@ -91,6 +123,11 @@ export class CardsService {
       status,
       lista_tarefas,
       lista_historico,
+      id_create_by,
+      create_by,
+      name_user,
+      name_obra_cliente,
+      name_contato
     } = updatedCardData;
 
     const client = new Client(this.dbConfig);
@@ -118,9 +155,14 @@ export class CardsService {
           produto = $16,
           status = $17,
           lista_tarefas = $18,
-          lista_historico = $19
+          lista_historico = $19,
+          id_create_by = $20,
+          create_by = $21,
+          name_user = $22,
+          name_obra_cliente = $23,
+          name_contato = $24
         WHERE
-          id = $20
+          id = $25
         RETURNING *;
       `;
 
@@ -144,6 +186,11 @@ export class CardsService {
         status,
         lista_tarefas,
         lista_historico,
+        id_create_by,
+        create_by,
+        name_user,
+        name_obra_cliente,
+        name_contato,
         cardId,
       ];
 
@@ -163,11 +210,11 @@ export class CardsService {
 
   async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
     const client = new Client(this.dbConfig);
-    
+
     try {
       await client.connect();
       let query = '';
-  
+
       if (tipoParticipante === 'Administrador') {
         console.log('Todos os usuários')
         query = `
@@ -175,7 +222,7 @@ export class CardsService {
           WHERE empresa = '${empresa}' COLLATE "C"
         `;
       }
-  
+
       if (listaAfilhados && listaAfilhados.length > 0 && tipoParticipante === 'Parceiro') {
         console.log('criado por afilhados')
 
@@ -187,7 +234,7 @@ export class CardsService {
           WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
         `;
       }
-  
+
       if ((!listaAfilhados || listaAfilhados.length <= 0) && (tipoParticipante === 'Parceiro' || tipoParticipante === 'free')) {
         console.log('apenas criado pelo usuário')
         query = `
@@ -195,7 +242,7 @@ export class CardsService {
           WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
         `;
       }
-  
+
       const result = await client.query(query);
       return result.rows;
     } catch (error) {
@@ -204,9 +251,9 @@ export class CardsService {
       await client.end();
     }
   }
-  
 
-  
+
+
   // async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
   //   const client = new Client(this.dbConfig);
 
@@ -341,29 +388,29 @@ export class CardsService {
 
 
 
-  async  createCard(cardData: any): Promise<any> {
+  async createCard(cardData: any): Promise<any> {
     const { document_card, name, name_obra, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico, tipo_participante } = cardData;
-  
+
     const client = new Client(this.dbConfig);
-  
+
     try {
       await client.connect();
-  
+
       // Verificar se a empresa é 'free' e o usuário já criou mais de 20 cards
       if (tipo_participante === 'free') {
         const countQuery = `
           SELECT COUNT(*) AS card_count FROM cards
           WHERE id_create_by = $1;
         `;
-  
+
         const countResult = await client.query(countQuery, [id_create_by]);
         const cardCount = countResult.rows[0].card_count;
-  
+
         if (cardCount >= 5) {
           throw new Error('Limite de 5 cards atingido na versão gratuita.');
         }
       }
-  
+
       const query = `
         INSERT INTO cards (
           document_card,
@@ -394,7 +441,7 @@ export class CardsService {
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
         ) RETURNING *;
       `;
-  
+
       const values = [
         document_card,
         name,
@@ -421,9 +468,9 @@ export class CardsService {
         lista_tarefas,
         lista_historico
       ];
-  
+
       const result = await client.query(query, values);
-  
+
       return result.rows[0];
     } catch (error) {
       //console.error('Informações do erro ao criar  card:', error);

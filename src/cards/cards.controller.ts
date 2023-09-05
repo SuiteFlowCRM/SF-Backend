@@ -6,6 +6,13 @@ export class CardsController {
 
   constructor(private readonly cardsService: CardsService) { }
 
+
+  // Rota para buscar os cards vendidos no último minuto
+  @Get('sold-last-minute')
+  async findSoldLastMinute(): Promise<any[]> {
+    return this.cardsService.findSoldLastMinute();
+  }
+
   @Post()
   async createCard(@Body() cardData: any): Promise<any> {
     return this.cardsService.createCard(cardData);
