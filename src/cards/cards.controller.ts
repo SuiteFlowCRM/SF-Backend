@@ -23,10 +23,11 @@ export class CardsController {
     @Query('tipoParticipante') tipoParticipante: string,
     @Query('idUser') idUser: string,
     @Query('empresa') empresa: string,
+    @Query('startDate') startDate: string,
     @Query('listaAfilhados') listaAfilhados?: { name: string, id: string }[]
   ): Promise<any[]> {
 
-    return this.cardsService.findAllFiltered(tipoParticipante, idUser, empresa, listaAfilhados);
+    return this.cardsService.findAllFiltered(tipoParticipante, idUser, empresa, listaAfilhados, startDate);
   }
 
   // @Get('filtered')

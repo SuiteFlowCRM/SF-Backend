@@ -36,6 +36,99 @@ export class CardsService {
   }
 
 
+  async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[], startDate: string): Promise<any[]> {
+    const client = new Client(this.dbConfig);
+
+    try {
+      await client.connect();
+      let query = '';
+
+      console.log(startDate)
+      const formattedStartDate = new Date(startDate).toISOString();
+      console.log(formattedStartDate)
+
+      if (tipoParticipante === 'Administrador' && startDate) {
+
+        //console.log('Todos os usuários')
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C"
+          AND modification_date >= '${formattedStartDate}'
+        `;
+      }
+
+      if (tipoParticipante === 'Escritorio') {
+        //console.log('Todos os usuários')
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C"
+          AND modification_date >= '${formattedStartDate}'
+        `;
+      }
+
+      if (tipoParticipante === 'Producao') {
+        //console.log('Todos os usuários')
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C"
+          AND modification_date >= '${formattedStartDate}'
+        `;
+      }
+
+      if (tipoParticipante === 'Externo') {
+        //console.log('Externo');
+        //console.log('idUser', idUser);
+
+        query = `
+        SELECT *
+        FROM cards
+        WHERE empresa = '${empresa}' COLLATE "C"
+        AND EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(to_jsonb(lista_compartilhar)) AS item
+            WHERE item->>'id' = '${idUser}'
+        )
+
+        `;
+        // A consulta utiliza $1 e $2 para os parâmetros. 
+        // Certifique-se de que a empresa e o idUser sejam passados na mesma ordem.
+      }
+
+      if (listaAfilhados && listaAfilhados.length > 0 && tipoParticipante === 'Parceiro') {
+        //console.log('criado por afilhados')
+
+        //const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
+        const afilhadosIds = listaAfilhados.map(afilhado => Number(afilhado.id));
+
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C" 
+          AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
+          AND modification_date >= '${formattedStartDate}'
+        `;
+      }
+
+      if ((!listaAfilhados || listaAfilhados.length <= 0) && (tipoParticipante === 'Parceiro' || tipoParticipante === 'free')) {
+        //console.log('apenas criado pelo usuário')
+        query = `
+          SELECT * FROM cards 
+          WHERE empresa = '${empresa}' COLLATE "C" 
+          AND id_create_by = '${idUser}' COLLATE "C"
+          AND modification_date >= '${formattedStartDate}'
+        `;
+      }
+
+      const result = await client.query(query);
+      return result.rows;
+    } catch (error) {
+      console.error('Erro ao executar a consulta SQL:', error);
+      throw new Error('Falha ao buscar os cards no banco');
+    } finally {
+      await client.end();
+    }
+  }
+
+
   async deleteCard(cardId: number): Promise<void> {
     const client = new Client(this.dbConfig);
     try {
@@ -108,6 +201,7 @@ export class CardsService {
       name,
       name_obra,
       valor,
+      valor_venda,
       email,
       fone,
       city,
@@ -127,8 +221,35 @@ export class CardsService {
       create_by,
       name_user,
       name_obra_cliente,
-      name_contato
+      name_contato,
+      lista_anexos,
+      previsao_entrega,
+      horas_producao,
+      previsao_instalacao,
+      previsao_assistencia,
+      lista_compartilhar,
+      cor,
+      edit_date,
+      prioridade,
+      previsao_producao,
+      recebimento_medidas,
+      prazo_entrega,
+      numero_pedido,
+      quadros,
+      metros_quadrados,
+      quantidade_esquadrias,
+      entrega_vidro,
+      status_vidro,
+      obs,
+      conclusao_producao,
     } = updatedCardData;
+
+    //console.log('TAREFAS')
+    // console.log(updatedCardData.lista_tarefas)
+    // console.log('HISTORICO')
+    // console.log(updatedCardData.lista_historico)
+    // console.log('ANEXOS')
+    // console.log(updatedCardData.lista_anexos)
 
     const client = new Client(this.dbConfig);
     try {
@@ -141,28 +262,49 @@ export class CardsService {
           name = $2,
           name_obra = $3,
           valor = $4,
-          email = $5,
-          fone = $6,
-          city = $7,
-          estado = $8,
-          previsao = $9,
-          meio_contato = $10,
-          id_column = $11,
-          nivel = $12,
-          etiqueta = $13,
-          motivo_perca = $14,
-          modification_date = $15,
-          produto = $16,
-          status = $17,
-          lista_tarefas = $18,
-          lista_historico = $19,
-          id_create_by = $20,
-          create_by = $21,
-          name_user = $22,
-          name_obra_cliente = $23,
-          name_contato = $24
+          valor_venda = $5,
+          email = $6,
+          fone = $7,
+          city = $8,
+          estado = $9,
+          previsao = $10,
+          meio_contato = $11,
+          id_column = $12,
+          nivel = $13,
+          etiqueta = $14,
+          motivo_perca = $15,
+          modification_date = $16,
+          produto = $17,
+          status = $18,
+          lista_tarefas = $19,
+          lista_historico = $20,
+          id_create_by = $21,
+          create_by = $22,
+          name_user = $23,
+          name_obra_cliente = $24,
+          name_contato = $25,
+          lista_anexos = $26,
+          previsao_entrega = $27,
+          horas_producao = $28,
+          previsao_instalacao = $29,
+          previsao_assistencia = $30,
+          lista_compartilhar = $31,
+          cor = $32,
+          edit_date = $33,
+          prioridade = $34,
+          previsao_producao = $35,
+          recebimento_medidas = $36,
+          prazo_entrega = $37,
+          numero_pedido = $38,
+          quadros = $39,
+          metros_quadrados = $40,
+          quantidade_esquadrias = $41,
+          entrega_vidro = $42,
+          status_vidro = $43,
+          obs = $44,
+          conclusao_producao = $45
         WHERE
-          id = $25
+          id = $46
         RETURNING *;
       `;
 
@@ -171,6 +313,7 @@ export class CardsService {
         name,
         name_obra,
         valor,
+        valor_venda,
         email,
         fone,
         city,
@@ -191,6 +334,26 @@ export class CardsService {
         name_user,
         name_obra_cliente,
         name_contato,
+        lista_anexos,
+        previsao_entrega,
+        horas_producao,
+        previsao_instalacao,
+        previsao_assistencia,
+        lista_compartilhar,
+        cor,
+        edit_date,
+        prioridade,
+        previsao_producao,
+        recebimento_medidas,
+        prazo_entrega,
+        numero_pedido,
+        quadros,
+        metros_quadrados,
+        quantidade_esquadrias,
+        entrega_vidro,
+        status_vidro,
+        obs,
+        conclusao_producao,
         cardId,
       ];
 
@@ -202,194 +365,17 @@ export class CardsService {
 
       return result.rows[0];
     } catch (error) {
+      console.error('INFORMAÇÕES SOBRE O ERRO AO ATUALIZAR O CARD:', error);
       throw new Error('Failed to update card');
     } finally {
-      await client.end();
+      if (client) {
+        await client.end();
+      }
     }
   }
-
-  async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
-    const client = new Client(this.dbConfig);
-
-    try {
-      await client.connect();
-      let query = '';
-
-      if (tipoParticipante === 'Administrador') {
-        console.log('Todos os usuários')
-        query = `
-          SELECT * FROM cards 
-          WHERE empresa = '${empresa}' COLLATE "C"
-        `;
-      }
-
-      if (listaAfilhados && listaAfilhados.length > 0 && tipoParticipante === 'Parceiro') {
-        console.log('criado por afilhados')
-
-        //const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
-        const afilhadosIds = listaAfilhados.map(afilhado => Number(afilhado.id));
-
-        query = `
-          SELECT * FROM cards 
-          WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
-        `;
-      }
-
-      if ((!listaAfilhados || listaAfilhados.length <= 0) && (tipoParticipante === 'Parceiro' || tipoParticipante === 'free')) {
-        console.log('apenas criado pelo usuário')
-        query = `
-          SELECT * FROM cards 
-          WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
-        `;
-      }
-
-      const result = await client.query(query);
-      return result.rows;
-    } catch (error) {
-      throw new Error('Falha ao buscar os cards no banco');
-    } finally {
-      await client.end();
-    }
-  }
-
-
-
-  // async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
-  //   const client = new Client(this.dbConfig);
-
-  //   console.log(tipoParticipante)
-  //   console.log(idUser)
-  //   console.log(empresa)
-  //   console.log(listaAfilhados)
-  //   try {
-  //     await client.connect();
-  //     let query = '';
-
-  //     if (tipoParticipante === 'Administrador') {
-  //       console.log('Todos os usuarios')
-  //       query = `
-  //         SELECT * FROM cards 
-  //         WHERE empresa = '${empresa}' COLLATE "C"
-  //       `;
-  //     }
-
-  //     if (listaAfilhados && listaAfilhados.length > 0 && tipoParticipante === 'Parceiro') {
-  //       console.log('criado por afilhados')
-  //       const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
-  //       query = `
-  //           SELECT * FROM cards 
-  //           WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
-  //         `;
-  //     }
-
-  //     if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'Parceiro') {
-  //       console.log('apenas criado pelo usuario')
-  //       query = `
-  //           SELECT * FROM cards 
-  //           WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
-  //         `;
-  //     }
-
-  //     if ( (!listaAfilhados || listaAfilhados.length <= 0) && tipoParticipante === 'free') {
-  //       console.log('apenas criado pelo usuario')
-  //       query = `
-  //           SELECT * FROM cards 
-  //           WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
-  //         `;
-  //     }
-
-  //     const result = await client.query(query);
-  //     return result.rows;
-  //   } catch (error) {
-  //     throw new Error('Falha ao buscar os cards no banco');
-  //   } finally {
-  //     await client.end();
-  //   }
-  // }
-
-
-  // async findAllFiltered(tipoParticipante: string, idUser: string, empresa: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
-  //   const client = new Client(this.dbConfig);
-
-  //   console.log(tipoParticipante)
-  //   console.log(idUser)
-  //   console.log(empresa)
-  //   console.log(listaAfilhados)
-  //   try {
-  //     await client.connect();
-  //     let query = '';
-
-  //     if (tipoParticipante === 'Administrador') {
-  //       console.log('Todos os usuarios')
-  //       query = `
-  //         SELECT * FROM cards 
-  //         WHERE empresa = '${empresa}' COLLATE "C"
-  //       `;
-  //     } else {
-  //       if (listaAfilhados && listaAfilhados.length > 0) {
-  //         console.log('criado por afilhados')
-  //         const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
-  //         query = `
-  //           SELECT * FROM cards 
-  //           WHERE empresa = '${empresa}' COLLATE "C" AND (id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}]))
-  //         `;
-  //       } else {
-  //         console.log('apenas creado pelo usuario')
-  //         query = `
-  //           SELECT * FROM cards 
-  //           WHERE empresa = '${empresa}' COLLATE "C" AND id_create_by = '${idUser}' COLLATE "C"
-  //         `;
-  //       }
-  //     }
-
-  //     const result = await client.query(query);
-  //     return result.rows;
-  //   } catch (error) {
-  //     throw new Error('Falha ao buscar os cards no banco');
-  //   } finally {
-  //     await client.end();
-  //   }
-  // }
-
-
-
-  // async findAllFiltered(tipoParticipante: string, idUser: string, listaAfilhados: { name: string, id: string }[]): Promise<any[]> {
-  //   const client = new Client(this.dbConfig);
-  //   try {
-  //     await client.connect();
-  //     let query = '';
-
-  //     if (tipoParticipante === 'Administrador') {
-  //       query = 'SELECT * FROM cards';
-  //     } else {
-  //       if (listaAfilhados && listaAfilhados.length > 0) {
-  //         const afilhadosIds = listaAfilhados.map(afilhado => `'${afilhado.id}'`).join(', ');
-  //         query = `
-  //         SELECT * FROM cards 
-  //         WHERE id_create_by = '${idUser}' COLLATE "C" OR id_create_by = ANY(ARRAY[${afilhadosIds}])
-  //       `;
-  //       } else {
-  //         query = `
-  //         SELECT * FROM cards 
-  //         WHERE id_create_by = '${idUser}' COLLATE "C"
-  //       `;
-  //       }
-  //     }
-
-  //     const result = await client.query(query);
-  //     return result.rows;
-  //   } catch (error) {
-  //     throw new Error('Failed to fetch cards');
-  //   } finally {
-  //     await client.end();
-  //   }
-  // }
-
-
-
 
   async createCard(cardData: any): Promise<any> {
-    const { document_card, name, name_obra, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico, tipo_participante } = cardData;
+    const { document_card, name, name_obra_cliente, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico, tipo_participante, etapa_producao, cor, edit_date, name_contato, valor_venda } = cardData;
 
     const client = new Client(this.dbConfig);
 
@@ -415,7 +401,7 @@ export class CardsService {
         INSERT INTO cards (
           document_card,
           name,
-          name_obra,
+          name_obra_cliente,
           valor,
           email,
           fone,
@@ -436,16 +422,21 @@ export class CardsService {
           produto,
           status,
           lista_tarefas,
-          lista_historico
+          lista_historico,
+          etapa_producao,
+          cor,
+          edit_date,
+          name_contato,
+          valor_venda
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
         ) RETURNING *;
       `;
 
       const values = [
         document_card,
         name,
-        name_obra,
+        name_obra_cliente,
         valor,
         email,
         fone,
@@ -466,7 +457,12 @@ export class CardsService {
         produto,
         status,
         lista_tarefas,
-        lista_historico
+        lista_historico,
+        etapa_producao,
+        cor,
+        edit_date,
+        name_contato,
+        valor_venda
       ];
 
       const result = await client.query(query, values);
@@ -479,82 +475,5 @@ export class CardsService {
       await client.end();
     }
   }
-
-  // async createCard(cardData: any): Promise<any> {
-  //   const { document_card, name, name_obra, valor, email, fone, city, estado, previsao, meio_contato, create_by, id_create_by, name_user, id_column, date, nivel, etiqueta, empresa, motivo_perca, modification_date, produto, status, lista_tarefas, lista_historico } = cardData;
-
-  //   const client = new Client(this.dbConfig);
-  //   try {
-  //     await client.connect();
-
-  //     const query = `
-  //       INSERT INTO cards (
-  //         document_card,
-  //         name,
-  //         name_obra,
-  //         valor,
-  //         email,
-  //         fone,
-  //         city,
-  //         estado,
-  //         previsao,
-  //         meio_contato,
-  //         create_by,
-  //         id_create_by,
-  //         name_user,
-  //         id_column,
-  //         date,
-  //         nivel,
-  //         etiqueta,
-  //         empresa,
-  //         motivo_perca,
-  //         modification_date,
-  //         produto,
-  //         status,
-  //         lista_tarefas,
-  //         lista_historico
-  //       ) VALUES (
-  //         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
-  //       ) RETURNING *;
-  //     `;
-
-  //     const values = [
-  //       document_card,
-  //       name,
-  //       name_obra,
-  //       valor,
-  //       email,
-  //       fone,
-  //       city,
-  //       estado,
-  //       previsao,
-  //       meio_contato,
-  //       create_by,
-  //       id_create_by,
-  //       name_user,
-  //       id_column,
-  //       date,
-  //       nivel,
-  //       etiqueta,
-  //       empresa,
-  //       motivo_perca,
-  //       modification_date,
-  //       produto,
-  //       status,
-  //       lista_tarefas,
-  //       lista_historico
-  //     ];
-
-  //     const result = await client.query(query, values);
-
-  //     return result.rows[0];
-  //   } catch (error) {
-  //     console.error('Informações do erro ao criar  card:', error);
-  //     throw new Error('Failedto create card');
-  //   } finally {
-  //     await client.end();
-  //   }
-  // }
-
 
 }

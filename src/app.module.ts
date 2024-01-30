@@ -7,9 +7,13 @@ import { UserModule } from './users/users.module';
 import { PrticipanteModule } from './participantes/participantes.module';
 import { FilterModule } from './filters/filters.module';
 import { EmailModule } from './email/email.module';
+import { ProcessoModule } from './processos/processo.module';
+import { EmpresasModule } from './empresas/empresas.module';
+import { OrcamentosModule } from './orcamentos/orcamentos.module';
+import { MensagensModule } from './mensagens/mensagens.module';
 
 @Module({
-  imports: [CardsModule, ProductsModule, UserModule, PrticipanteModule, FilterModule, EmailModule],
+  imports: [CardsModule, ProductsModule, UserModule, PrticipanteModule, FilterModule, EmailModule, ProcessoModule, EmpresasModule, OrcamentosModule, MensagensModule],
   controllers: [AppController],
   providers: [AppService],
 })

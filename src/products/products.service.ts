@@ -7,31 +7,49 @@ export class ProductsService {
 
   private dbConfig = databaseConfig;
 
-    async  createProduct(newProduct: any): Promise<any> {
-    const { empresa, name } = newProduct;
-  
+  async createProduct(newProduct: any): Promise<any> {
+    const { empresa, name, codigo, cor, valor, unidade_medida, ipi, converter,peso, tamanho, seguimento } = newProduct;
+
     const client = new Client(this.dbConfig);
-  
+
     try {
       await client.connect();
-  
-  
+
+
       const query = `
         INSERT INTO produtos (
           empresa,
-          name
+          name,
+          codigo,
+          cor,
+          valor,
+          unidade_medida,
+          ipi,
+          converter,
+          peso,
+          tamanho,
+          seguimento
         ) VALUES (
-          $1, $2
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
         ) RETURNING *;
       `;
-  
+
       const values = [
         empresa,
         name,
+        codigo,
+        cor,
+        valor,
+        unidade_medida,
+        ipi,
+        converter,
+        peso,
+        tamanho,
+        seguimento,
       ];
-  
+
       const result = await client.query(query, values);
-  
+
       return result.rows[0];
     } catch (error) {
       console.error('Informações do erro ao criar  produto:', error);
@@ -42,7 +60,7 @@ export class ProductsService {
   }
 
 
-  async findAllFiltered( empresa: string ): Promise<any[]> {
+  async findAllFiltered(empresa: string): Promise<any[]> {
     const client = new Client(this.dbConfig);
 
     try {
@@ -66,6 +84,17 @@ export class ProductsService {
   async updateProduct(productId: number, updatedProductData: any): Promise<any> {
     const {
       name,
+      codigo,
+      cor,
+      valor,
+      unidade_medida,
+      ipi,
+      converter,
+      peso,
+      tamanho,
+      seguimento,
+      variante,
+      codigo_ext,
     } = updatedProductData;
 
     const client = new Client(this.dbConfig);
@@ -75,14 +104,36 @@ export class ProductsService {
       const query = `
         UPDATE produtos
         SET
-          name = $1
+          name = $1,
+          codigo = $2,
+          cor = $3,
+          valor = $4,
+          unidade_medida = $5,
+          ipi = $6,
+          converter = $7,
+          peso = $8,
+          tamanho = $9,
+          seguimento = $10,
+          variante = $11,
+          codigo_ext = $12
         WHERE
-          id = $2
+          id = $13
         RETURNING *;
       `;
 
       const values = [
         name,
+        codigo,
+        cor,
+        valor,
+        unidade_medida,
+        ipi,
+        converter,
+        peso,
+        tamanho,
+        seguimento,
+        variante,
+        codigo_ext,
         productId,
       ];
 

@@ -119,18 +119,45 @@ export class ParticipanteService {
     }
   }
 
-  async findAllFiltered( id_user: string ): Promise<any[]> {
-    const client = new Client(this.dbConfig);
+  // async findAllFiltered( id_user: string ): Promise<any[]> {
+  //   const client = new Client(this.dbConfig);
 
+  //   try {
+  //     await client.connect();
+  //     let query = '';
+
+  //     query = `
+  //       SELECT * FROM participantes 
+  //       WHERE id_user = '${id_user}' COLLATE "C"
+  //     `;
+
+  //     const result = await client.query(query);
+  //     return result.rows;
+  //   } catch (error) {
+  //     throw new Error('Falha ao buscar os usuários no banco');
+  //   } finally {
+  //     await client.end();
+  //   }
+  // }
+
+  async findAllFiltered(id_user: string, tipoParticipante: string): Promise<any[]> {
+    const client = new Client(this.dbConfig);
+  
     try {
       await client.connect();
       let query = '';
-
-      query = `
-        SELECT * FROM participantes 
-        WHERE id_user = '${id_user}' COLLATE "C"
-      `;
-
+  
+      if (tipoParticipante === 'Administrador') {
+        // Retrieve the entire list for Administrador
+        query = 'SELECT * FROM participantes';
+      } else {
+        // Filter the list based on id_user for other types
+        query = `
+          SELECT * FROM participantes 
+          WHERE id_user = '${id_user}' COLLATE "C"
+        `;
+      }
+  
       const result = await client.query(query);
       return result.rows;
     } catch (error) {
@@ -139,6 +166,7 @@ export class ParticipanteService {
       await client.end();
     }
   }
+  
 
   async deleteParticipante(participanteId: number): Promise<void> {
     const client = new Client(this.dbConfig);
